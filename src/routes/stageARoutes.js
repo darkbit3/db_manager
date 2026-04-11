@@ -126,7 +126,7 @@ function generateSequentialGameId(modelManager, stage) {
     
   } catch (error) {
     console.error(`Error generating game ID for Stage ${stage}:`, error.message);
-    return `GAME_${Date.now()}_001`;
+    return "1";
   }
 }
 function updateExistingRecords(modelManager, stage) {
