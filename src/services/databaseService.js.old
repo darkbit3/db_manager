@@ -1,0 +1,210 @@
+const Database = require('../models/Database');
+const logger = require('../config/logger');
+
+const getAllDatabases = async (userId) => {
+  try {
+    const databases = await Database.find({ owner: userId })
+      .select('-password')
+      .sort({ created_at: -1 });
+    
+    logger.info(`Retrieved ${databases.length} databases for user ${userId}`);
+    return databases;
+  } catch (error) {
+    logger.error('Error retrieving databases:', error);
+    throw error;
+  }
+};
+
+const getDatabaseById = async (id, userId) => {
+  try {
+    const database = await Database.findOne({ _id: id, owner: userId })
+      .select('-password');
+    
+    if (database) {
+      logger.info(`Retrieved database ${id} for user ${userId}`);
+    }
+    
+    return database;
+  } catch (error) {
+    logger.error('Error retrieving database by ID:', error);
+    throw error;
+  }
+};
+
+const createDatabase = async (databaseData) => {
+  try {
+    const database = new Database(databaseData);
+    await database.save();
+    
+    logger.info(`Created new database: ${database.name} for user ${databaseData.owner}`);
+    
+    // Return database without password
+    const dbResult = database.toObject();
+    delete dbResult.password;
+    
+    return dbResult;
+  } catch (error) {
+    logger.error('Error creating database:', error);
+    throw error;
+  }
+};
+
+const updateDatabase = async (id, updateData, userId) => {
+  try {
+    const database = await Database.findOneAndUpdate(
+      { _id: id, owner: userId },
+      updateData,
+      { new: true, runValidators: true }
+    ).select('-password');
+    
+    if (database) {
+      logger.info(`Updated database ${id} for user ${userId}`);
+    }
+    
+    return database;
+  } catch (error) {
+    logger.error('Error updating database:', error);
+    throw error;
+  }
+};
+
+const deleteDatabase = async (id, userId) => {
+  try {
+    const result = await Database.findOneAndDelete({ _id: id, owner: userId });
+    
+    if (result) {
+      logger.info(`Deleted database ${id} for user ${userId}`);
+    }
+    
+    return result;
+  } catch (error) {
+    logger.error('Error deleting database:', error);
+    throw error;
+  }
+};
+
+const testConnection = async (id, userId) => {
+  try {
+    const database = await Database.findOne({ _id: id, owner: userId });
+    
+    if (!database) {
+      throw new Error('Database not found');
+    }
+    
+    // Test connection based on database type
+    let testResult;
+    
+    switch (database.type) {
+      case 'mongodb':
+        testResult = await testMongoDBConnection(database.connection_string);
+        break;
+      case 'postgresql':
+        testResult = await testPostgreSQLConnection(database);
+        break;
+      case 'mysql':
+        testResult = await testMySQLConnection(database);
+        break;
+      default:
+        throw new Error('Unsupported database type');
+    }
+    
+    logger.info(`Tested connection for database ${id}: ${testResult.status}`);
+    return testResult;
+    
+  } catch (error) {
+    logger.error('Error testing database connection:', error);
+    throw error;
+  }
+};
+
+const testMongoDBConnection = async (connectionString) => {
+  const mongoose = require('mongoose');
+  
+  try {
+    const conn = await mongoose.createConnection(connectionString);
+    await conn.close();
+    
+    return {
+      status: 'success',
+      message: 'MongoDB connection successful',
+      timestamp: new Date().toISOString()
+    };
+  } catch (error) {
+    return {
+      status: 'failed',
+      message: error.message,
+      timestamp: new Date().toISOString()
+    };
+  }
+};
+
+const testPostgreSQLConnection = async (database) => {
+  const { Sequelize } = require('sequelize');
+  
+  try {
+    const sequelize = new Sequelize(
+      database.database_name,
+      database.username,
+      database.password,
+      {
+        host: database.host,
+        port: database.port,
+        dialect: 'postgres',
+        logging: false
+      }
+    );
+    
+    await sequelize.authenticate();
+    await sequelize.close();
+    
+    return {
+      status: 'success',
+      message: 'PostgreSQL connection successful',
+      timestamp: new Date().toISOString()
+    };
+  } catch (error) {
+    return {
+      status: 'failed',
+      message: error.message,
+      timestamp: new Date().toISOString()
+    };
+  }
+};
+
+const testMySQLConnection = async (database) => {
+  const mysql = require('mysql2/promise');
+  
+  try {
+    const connection = await mysql.createConnection({
+      host: database.host,
+      port: database.port,
+      user: database.username,
+      password: database.password,
+      database: database.database_name
+    });
+    
+    await connection.ping();
+    await connection.end();
+    
+    return {
+      status: 'success',
+      message: 'MySQL connection successful',
+      timestamp: new Date().toISOString()
+    };
+  } catch (error) {
+    return {
+      status: 'failed',
+      message: error.message,
+      timestamp: new Date().toISOString()
+    };
+  }
+};
+
+module.exports = {
+  getAllDatabases,
+  getDatabaseById,
+  createDatabase,
+  updateDatabase,
+  deleteDatabase,
+  testConnection
+};

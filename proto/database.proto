@@ -1,0 +1,148 @@
+syntax = "proto3";
+
+package database;
+
+service DatabaseService {
+  rpc StreamUpdates (stream UpdateRequest) returns (stream UpdateResponse);
+  rpc GetGameData (GameDataRequest) returns (GameDataResponse);
+  rpc StreamGameData (GameDataStreamRequest) returns (stream GameDataResponse);
+  rpc PlaceBet (BetRequest) returns (BetResponse);
+  rpc StreamBets (BetStreamRequest) returns (stream BetUpdate);
+  rpc GetStatus (StatusRequest) returns (StatusResponse);
+}
+
+enum UpdateType {
+  UPDATE_TYPE_UNSPECIFIED = 0;
+  UPDATE_TYPE_CONNECTION_ESTABLISHED = 1;
+  UPDATE_TYPE_CONNECTION_LOST = 2;
+  UPDATE_TYPE_GAME_DATA = 3;
+  UPDATE_TYPE_BET_PLACED = 4;
+}
+
+enum BetStatus {
+  BET_STATUS_UNSPECIFIED = 0;
+  BET_STATUS_PENDING = 1;
+  BET_STATUS_CONFIRMED = 2;
+  BET_STATUS_REJECTED = 3;
+  BET_STATUS_CANCELLED = 4;
+}
+
+enum DatabaseStatus {
+  DB_STATUS_UNSPECIFIED = 0;
+  DB_STATUS_HEALTHY = 1;
+  DB_STATUS_DEGRADED = 2;
+  DB_STATUS_UNHEALTHY = 3;
+}
+
+message UpdateRequest {
+  string client_id = 1;
+  string service_name = 2;
+  UpdateType update_type = 3;
+  GameData game_data = 4;
+  BetData bet_data = 5;
+}
+
+message UpdateResponse {
+  bool success = 1;
+  string message = 2;
+  UpdateType update_type = 3;
+  GameData game_data = 4;
+  int64 timestamp = 5;
+}
+
+message GameDataRequest {
+  string stage = 1;
+  string game_id = 2;
+}
+
+message GameDataResponse {
+  bool success = 1;
+  string message = 2;
+  GameData game_data = 3;
+  bool is_real_time_update = 4;
+  int64 timestamp = 5;
+}
+
+message GameDataStreamRequest {
+  string stage = 1;
+  string game_id = 2;
+  bool subscribe_updates = 3;
+  string client_id = 4;
+}
+
+message BetRequest {
+  string player_id = 1;
+  string stage = 2;
+  double amount = 3;
+  repeated int32 board_selection = 4;
+  string client_id = 5;
+}
+
+message BetResponse {
+  bool success = 1;
+  string message = 2;
+  string bet_id = 3;
+  string player_id = 4;
+  double amount = 5;
+  BetStatus status = 6;
+  int64 timestamp = 7;
+}
+
+message BetStreamRequest {
+  string stage = 1;
+  string client_id = 2;
+  bool subscribe_all_stages = 3;
+}
+
+message BetUpdate {
+  string bet_id = 1;
+  string player_id = 2;
+  string stage = 3;
+  double amount = 4;
+  repeated int32 board_selection = 5;
+  BetStatus status = 6;
+  int64 placed_at = 7;
+  int64 updated_at = 8;
+}
+
+message StatusRequest {
+  string client_id = 1;
+  bool detailed = 2;
+}
+
+message StatusResponse {
+  bool success = 1;
+  string message = 2;
+  StatusData status = 3;
+  int64 timestamp = 4;
+}
+
+message StatusData {
+  int32 active_connections = 1;
+  int32 total_games = 2;
+  int32 total_bets = 3;
+  double system_load = 4;
+  DatabaseStatus status = 5;
+}
+
+message GameData {
+  string game_id = 1;
+  string stage = 2;
+  repeated int32 numbers_drawn = 3;
+  repeated int32 winning_numbers = 4;
+  string status = 5;
+  int64 created_at = 6;
+  int64 updated_at = 7;
+  repeated BetData bets = 8;
+}
+
+message BetData {
+  string bet_id = 1;
+  string player_id = 2;
+  string stage = 3;
+  double amount = 4;
+  repeated int32 board_selection = 5;
+  BetStatus status = 6;
+  int64 placed_at = 7;
+  int64 updated_at = 8;
+}
