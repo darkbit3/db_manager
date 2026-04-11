@@ -53,7 +53,7 @@ router.get('/last-game-id', async (req, res) => {
         stage: 'stage-l'
       });
     } else {
-      const firstGameId = `GAME_${Date.now()}_L001`;
+      const firstGameId = generateSequentialGameId(modelManager, 'L');
       const samplePlayerIds = "+251909090909,+251909090910";
       const sampleSelectedBoard = "+251909090909:2,+251909090910:4";
       
