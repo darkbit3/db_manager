@@ -327,16 +327,16 @@ class SQLiteStage {
     const dataFieldMap = {
       'A': 'registrationData',
       'B': 'gameData',
-      'C': 'gameProgress',
-      'D': 'competitionData',
-      'E': 'tournamentData',
-      'F': 'championshipData',
-      'G': 'finaleData',
-      'H': 'eliteData',
-      'I': 'masterData',
-      'J': 'grandmasterData',
-      'K': 'legendaryData',
-      'L': 'ultimateData'
+      'C': 'registrationData',
+      'D': 'registrationData',
+      'E': 'registrationData',
+      'F': 'registrationData',
+      'G': 'registrationData',
+      'H': 'registrationData',
+      'I': 'registrationData',
+      'J': 'registrationData',
+      'K': 'registrationData',
+      'L': 'registrationData'
     };
     
     return dataFieldMap[this.stageName] || 'metadata';
@@ -351,7 +351,7 @@ class SQLiteStage {
     const parsed = { ...record };
     
     // Parse JSON fields
-    const jsonFields = ['winnerBoard', 'selectedBoard', 'metadata', this.getDataFieldName()];
+    const jsonFields = ['winnerBoard', 'selectedBoard', 'metadata', 'registrationData', 'gameData'];
     
     jsonFields.forEach(field => {
       if (parsed[field]) {
